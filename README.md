@@ -1,4 +1,4 @@
-<h1> Just testing out rendering visualisations on github pages </h1>
+<p> Just testing out rendering visualisations on github pages </p> <a href="https://p-mckenzie.github.io/2017/12/01/embedding-bokeh-with-github-pages/"> this reference </a>
 
 <iframe src="flowers.html"
     sandbox="allow-same-origin allow-scripts"
