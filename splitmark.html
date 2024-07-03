@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bill Splitting App</title>
+    <title>SplitMark</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
@@ -38,7 +38,7 @@
             font-weight: bold;
         }
 
-        input[type="text"], input[type="number"], select, button {
+        input[type="text"], input[type="number"], input[type="file"], select, button {
             width: 100%;
             padding: 10px;
             margin-bottom: 10px;
@@ -48,6 +48,28 @@
             font-size: 16px;
         }
 
+        input[type="file"] {
+            display: none;
+        }
+
+        .custom-file-upload {
+            display: inline-block;
+            width: 100%;
+            padding: 10px;
+            cursor: pointer;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            text-align: center;
+            margin-bottom: 10px;
+            height: 42px;
+            line-height: 22px;
+            box-sizing: border-box;
+}
+        }
+
         button {
             cursor: pointer;
             background-color: #007BFF;
@@ -55,6 +77,7 @@
             border: none;
             border-radius: 5px;
             font-size: 16px;
+            height: 42px;
         }
 
         ul {
@@ -65,6 +88,9 @@
         li {
             padding: 10px;
             border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .hidden {
@@ -74,6 +100,90 @@
         .serviceTaxDisplay {
             font-size: 16px;
             margin-bottom: 10px;
+        }
+
+        .ocr-status, .ocr-error {
+            font-size: 14px;
+            color: #007BFF;
+            margin-bottom: 10px;
+        }
+
+        .ocr-results {
+            font-size: 14px;
+            color: #007BFF;
+            margin-bottom: 10px;
+        }
+
+        .progress-container {
+            width: 100%;
+            background-color: #f3f3f3;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 20px;
+            background-color: #007BFF;
+            width: 0;
+            transition: width 0.3s;
+        }
+
+        .edit-btn {
+            background-color: #ffc107;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .edit-btn i {
+            margin-right: 5px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 10px;
+        }
+
+        .modal-header, .modal-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover, .close:focus {
+            color: black;
         }
         
         @media (max-width: 600px) {
@@ -92,7 +202,7 @@
     </style>
 </head>
 <body>
-    <h2>Bill Splitting App</h2>
+    <h2>Welcome to SplitMark</h2>
     
     <!-- Step 1: Enter Friends' Names -->
     <form id="friendsForm">
@@ -110,10 +220,20 @@
     <form id="dishesForm" class="hidden">
         <h3>Step 2: Enter Dishes and Costs</h3>
         <label for="dishName">Dish Name:</label>
-        <input type="text" id="dishName" name="dishName" required>
+        <input type="text" id="dishName" name="dishName">
         <label for="cost">Cost:</label>
-        <input type="number" id="cost" name="cost" step="0.01" required>
+        <input type="number" id="cost" name="cost" step="0.01">
         <button type="submit">Add Dish</button>
+        <label class="custom-file-upload">
+            <input type="file" id="receiptImage" name="receiptImage" accept="image/*">
+            Upload Receipt Instead
+        </label>
+        <div class="progress-container hidden" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <div id="ocrStatus" class="ocr-status hidden">Processing receipt image...</div>
+        <div id="ocrError" class="ocr-error hidden"></div>
+        <div id="ocrResults" class="ocr-results hidden">Parsed Results:</div>
     </form>
     
     <ul id="dishesList" class="hidden">
@@ -155,9 +275,30 @@
             <!-- Results will be displayed here -->
         </ul>
     </div>
+
+    <!-- Modal for Editing Dish -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Dish</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <label for="editDishName">Dish Name:</label>
+                <input type="text" id="editDishName" name="editDishName">
+                <label for="editDishCost">Cost:</label>
+                <input type="number" id="editDishCost" name="editDishCost" step="0.01">
+            </div>
+            <div class="modal-footer">
+                <button id="saveEditBtn">Save</button>
+                <button id="cancelEditBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
     
-    <!-- Include the canvas-confetti library -->
+    <!-- Include the canvas-confetti and Tesseract.js libraries -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.4.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
     
     <script>
         const friendsForm = document.getElementById('friendsForm');
@@ -173,8 +314,21 @@
         const resultsList = document.getElementById('resultsList');
         const assignmentList = document.getElementById('assignmentList');
         const serviceTaxDisplay = document.getElementById('serviceTaxDisplay');
+        const receiptImage = document.getElementById('receiptImage');
+        const ocrStatus = document.getElementById('ocrStatus');
+        const ocrError = document.getElementById('ocrError');
+        const ocrResults = document.getElementById('ocrResults');
+        const progressBar = document.getElementById('progressBar');
+        const progressContainer = document.getElementById('progressContainer');
+        const editModal = document.getElementById('editModal');
+        const closeModalBtn = document.querySelector('.close');
+        const saveEditBtn = document.getElementById('saveEditBtn');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+        const editDishNameInput = document.getElementById('editDishName');
+        const editDishCostInput = document.getElementById('editDishCost');
         let serviceTax = 0;
-        
+        let editDishId = null;
+
         let friends = [];
         let dishes = [];
         let dishFriendsMap = new Map();
@@ -196,14 +350,151 @@
             event.preventDefault();
             const dishName = document.getElementById('dishName').value;
             const cost = parseFloat(document.getElementById('cost').value).toFixed(2);
-            const dishId = `${dishName}-${Date.now()}`; // Unique ID for each dish
-            dishes.push({ dishName, cost, dishId });
+            if (dishName && cost) {
+                const dishId = `${dishName}-${Date.now()}`; // Unique ID for each dish
+                dishes.push({ dishName, cost, dishId });
+                updateDishesList();
+                updateDishSelect();
+                dishesForm.reset();
+                if (dishes.length > 0) {
+                    dishesList.classList.remove('hidden');
+                    sharingForm.classList.remove('hidden');
+                }
+            }
+        });
+
+        receiptImage.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                ocrStatus.classList.remove('hidden');
+                ocrError.classList.add('hidden');
+                progressContainer.classList.remove('hidden');
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onloadstart = () => {
+                    progressBar.style.width = '10%';
+                };
+                reader.onprogress = (event) => {
+                    if (event.lengthComputable) {
+                        const percentComplete = Math.round((event.loaded / event.total) * 100);
+                        progressBar.style.width = percentComplete + '%';
+                    }
+                };
+                reader.onload = () => {
+                    progressBar.style.width = '100%';
+                    Tesseract.recognize(
+                        file,
+                        'eng',
+                        {
+                            tessedit_char_whitelist: '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ$.,:-',
+                            logger: m => console.log(m)
+                        }
+                    ).then(({ data: { text } }) => {
+                        ocrStatus.classList.add('hidden');
+                        console.log(text); // Log the raw OCR output for debugging
+                        parseReceiptText(text);
+                    }).catch(err => {
+                        console.error(err);
+                        ocrStatus.classList.add('hidden');
+                        ocrError.textContent = "Failed to process the receipt image. Error: " + err.message;
+                        ocrError.classList.remove('hidden');
+                    }).finally(() => {
+                        progressContainer.classList.add('hidden');
+                    });
+                };
+                reader.onerror = () => {
+                    progressBar.style.width = '0';
+                    progressContainer.classList.add('hidden');
+                    ocrError.textContent = "Failed to read the receipt image.";
+                    ocrError.classList.remove('hidden');
+                };
+            }
+        });
+
+        function parseReceiptText(text) {
+            const lines = text.split('\n');
+            let parsedDishes = [];
+            let taxAmount = 0;
+            let totalAmount = 0;
+            lines.forEach(line => {
+                const taxMatch = line.match(/(tax|service\s+charge|service\s+tax)\s+(\d+\.\d{2})/i);
+                const totalMatch = line.match(/total\s+(\d+\.\d{2})/i);
+                if (taxMatch) {
+                    taxAmount = parseFloat(taxMatch[2]).toFixed(2);
+                } else if (totalMatch) {
+                    totalAmount = parseFloat(totalMatch[1]).toFixed(2);
+                } else {
+                    const dishMatch = line.match(/(\d+)\s+(.+?)\s+(\d+\.\d{2})/);
+                    if (dishMatch) {
+                        const quantity = parseInt(dishMatch[1]);
+                        const dishName = dishMatch[2].trim();
+                        const cost = parseFloat(dishMatch[3]).toFixed(2);
+                        for (let i = 0; i < quantity; i++) {
+                            const dishId = `${dishName}-${Date.now()}-${i}`;
+                            parsedDishes.push({ dishName, cost: (cost / quantity).toFixed(2), dishId });
+                        }
+                    }
+                }
+            });
+            if (taxAmount) {
+                serviceTax = taxAmount;
+                document.getElementById('serviceTax').value = serviceTax;
+                serviceTaxForm.classList.remove('hidden');
+                serviceTaxDisplay.textContent = `Total Service Tax: $${serviceTax}`;
+                serviceTaxDisplay.classList.remove('hidden');
+            }
+            if (parsedDishes.length === 0) {
+                ocrError.textContent = "No dishes found in the receipt. Please enter them manually.";
+                ocrError.classList.remove('hidden');
+                return;
+            }
+            dishes = dishes.concat(parsedDishes);
             updateDishesList();
             updateDishSelect();
-            dishesForm.reset();
+            displayParsedResults(parsedDishes);
             if (dishes.length > 0) {
                 dishesList.classList.remove('hidden');
                 sharingForm.classList.remove('hidden');
+            }
+        }
+
+        function displayParsedResults(parsedDishes) {
+            ocrResults.innerHTML = '<h3>Parsed Results:</h3>' + parsedDishes.map(dish => `<div>${dish.dishName}: $${dish.cost}</div>`).join('');
+            ocrResults.classList.remove('hidden');
+        }
+
+        function editDish(dishId) {
+            const dish = dishes.find(d => d.dishId === dishId);
+            if (dish) {
+                editDishId = dishId;
+                editDishNameInput.value = dish.dishName;
+                editDishCostInput.value = dish.cost;
+                editModal.style.display = "block";
+            }
+        }
+        
+        saveEditBtn.addEventListener('click', function() {
+            const dish = dishes.find(d => d.dishId === editDishId);
+            if (dish) {
+                dish.dishName = editDishNameInput.value;
+                dish.cost = parseFloat(editDishCostInput.value).toFixed(2);
+                updateDishesList();
+                updateDishSelect();
+                editModal.style.display = "none";
+            }
+        });
+
+        cancelEditBtn.addEventListener('click', function() {
+            editModal.style.display = "none";
+        });
+
+        closeModalBtn.addEventListener('click', function() {
+            editModal.style.display = "none";
+        });
+
+        window.addEventListener('click', function(event) {
+            if (event.target == editModal) {
+                editModal.style.display = "none";
             }
         });
         
@@ -262,7 +553,12 @@
         }
         
         function updateDishesList() {
-            dishesList.innerHTML = dishes.map(dish => `<li>${dish.dishName} - $${dish.cost}</li>`).join('');
+            dishesList.innerHTML = dishes.map(dish => `
+                <li>
+                    ${dish.dishName} - $${dish.cost}
+                    <button class="edit-btn" onclick="editDish('${dish.dishId}')"><i class="fas fa-edit"></i>Edit</button>
+                </li>
+            `).join('');
         }
         
         function updateFriendsCheckboxes() {
