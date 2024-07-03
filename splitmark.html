@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SplitMark</title>
+    <title>Bill Splitting App</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
@@ -66,8 +66,6 @@
             margin-bottom: 10px;
             height: 42px;
             line-height: 22px;
-            box-sizing: border-box;
-}
         }
 
         button {
@@ -137,6 +135,8 @@
             padding: 5px;
             cursor: pointer;
             font-size: 14px;
+            width: 70px;
+            text-align: center;
         }
 
         .edit-btn i {
@@ -185,6 +185,23 @@
         .close:hover, .close:focus {
             color: black;
         }
+
+        .modal-footer button {
+            width: 45%;
+            padding: 10px;
+            font-size: 16px;
+            margin: 5px;
+        }
+
+        .save-btn {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .cancel-btn {
+            background-color: #dc3545;
+            color: white;
+        }
         
         @media (max-width: 600px) {
             body {
@@ -202,7 +219,7 @@
     </style>
 </head>
 <body>
-    <h2>Welcome to SplitMark</h2>
+    <h2>Bill Splitting App</h2>
     
     <!-- Step 1: Enter Friends' Names -->
     <form id="friendsForm">
@@ -290,8 +307,8 @@
                 <input type="number" id="editDishCost" name="editDishCost" step="0.01">
             </div>
             <div class="modal-footer">
-                <button id="saveEditBtn">Save</button>
-                <button id="cancelEditBtn">Cancel</button>
+                <button id="saveEditBtn" class="save-btn">Save</button>
+                <button id="cancelEditBtn" class="cancel-btn">Cancel</button>
             </div>
         </div>
     </div>
@@ -556,7 +573,7 @@
             dishesList.innerHTML = dishes.map(dish => `
                 <li>
                     ${dish.dishName} - $${dish.cost}
-                    <button class="edit-btn" onclick="editDish('${dish.dishId}')"><i class="fas fa-edit"></i>Edit</button>
+                    <button class="edit-btn" onclick="editDish('${dish.dishId}')">Edit</button>
                 </li>
             `).join('');
         }
