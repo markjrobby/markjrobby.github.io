@@ -38,7 +38,7 @@
             font-weight: bold;
         }
 
-        input[type="text"], input[type="number"], input[type="file"], select, button, .custom-file-upload {
+        input[type="text"], input[type="number"], input[type="file"], select, button {
             width: 100%;
             padding: 10px;
             margin-bottom: 10px;
@@ -198,7 +198,7 @@
             color: white;
         }
 
-        .cancel-btn {
+        .remove-btn {
             background-color: #dc3545;
             color: white;
         }
@@ -308,7 +308,7 @@
             </div>
             <div class="modal-footer">
                 <button id="saveEditBtn" class="save-btn">Save</button>
-                <button id="cancelEditBtn" class="cancel-btn">Cancel</button>
+                <button id="removeEditBtn" class="remove-btn">Remove</button>
             </div>
         </div>
     </div>
@@ -340,7 +340,7 @@
         const editModal = document.getElementById('editModal');
         const closeModalBtn = document.querySelector('.close');
         const saveEditBtn = document.getElementById('saveEditBtn');
-        const cancelEditBtn = document.getElementById('cancelEditBtn');
+        const removeEditBtn = document.getElementById('removeEditBtn');
         const editDishNameInput = document.getElementById('editDishName');
         const editDishCostInput = document.getElementById('editDishCost');
         let serviceTax = 0;
@@ -501,7 +501,10 @@
             }
         });
 
-        cancelEditBtn.addEventListener('click', function() {
+        removeEditBtn.addEventListener('click', function() {
+            dishes = dishes.filter(d => d.dishId !== editDishId);
+            updateDishesList();
+            updateDishSelect();
             editModal.style.display = "none";
         });
 
