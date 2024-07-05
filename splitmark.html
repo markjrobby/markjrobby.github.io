@@ -22,7 +22,7 @@
             margin-bottom: 20px;
         }
 
-        form, ul, .results, .assignments {
+        form, ul, .results, .assignments, .table-container {
             width: 100%;
             max-width: 400px;
             margin-bottom: 20px;
@@ -202,6 +202,21 @@
             background-color: #dc3545;
             color: white;
         }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
         
         @media (max-width: 600px) {
             body {
@@ -212,7 +227,7 @@
                 font-size: 1.5em;
             }
 
-            form, ul, .results, .assignments {
+            form, ul, .results, .assignments, .table-container {
                 width: 100%;
             }
         }
@@ -258,16 +273,21 @@
     </ul>
     
     <!-- Step 3: Select Friends for Each Dish -->
-    <form id="sharingForm" class="hidden">
+    <div id="sharingForm" class="hidden table-container">
         <h3>Step 3: Select Friends for Each Dish</h3>
-        <select id="dishSelect">
-            <!-- Dishes will be listed here -->
-        </select>
-        <div id="friendsCheckboxes">
-            <!-- Friends' checkboxes will be added here -->
-        </div>
-        <button type="submit">Assign Friends to Dish</button>
-    </form>
+        <table id="sharingTable">
+            <thead>
+                <tr>
+                    <th>Dish</th>
+                    <!-- Friends headers will be inserted here -->
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Dishes rows with checkboxes will be inserted here -->
+            </tbody>
+        </table>
+        <button type="button" id="assignFriendsBtn">Assign Friends</button>
+    </div>
     
     <ul id="assignmentList" class="hidden assignments">
         <!-- Assignments will be displayed here -->
@@ -324,8 +344,7 @@
         const serviceTaxForm = document.getElementById('serviceTaxForm');
         const friendsList = document.getElementById('friendsList');
         const dishesList = document.getElementById('dishesList');
-        const friendsCheckboxes = document.getElementById('friendsCheckboxes');
-        const dishSelect = document.getElementById('dishSelect');
+        const sharingTable = document.getElementById('sharingTable');
         const calculateBtn = document.getElementById('calculateBtn');
         const resultsDiv = document.getElementById('results');
         const resultsList = document.getElementById('resultsList');
@@ -343,6 +362,7 @@
         const removeEditBtn = document.getElementById('removeEditBtn');
         const editDishNameInput = document.getElementById('editDishName');
         const editDishCostInput = document.getElementById('editDishCost');
+        const assignFriendsBtn = document.getElementById('assignFriendsBtn');
         let serviceTax = 0;
         let editDishId = null;
 
@@ -355,7 +375,7 @@
             const friendName = document.getElementById('friendName').value;
             friends.push(friendName);
             updateFriendsList();
-            updateFriendsCheckboxes();
+            updateSharingTableHeaders();
             friendsForm.reset();
             if (friends.length > 0) {
                 friendsList.classList.remove('hidden');
@@ -371,7 +391,7 @@
                 const dishId = `${dishName}-${Date.now()}`; // Unique ID for each dish
                 dishes.push({ dishName, cost, dishId });
                 updateDishesList();
-                updateDishSelect();
+                updateSharingTableRows();
                 dishesForm.reset();
                 if (dishes.length > 0) {
                     dishesList.classList.remove('hidden');
@@ -456,7 +476,6 @@
             if (taxAmount) {
                 serviceTax = taxAmount;
                 document.getElementById('serviceTax').value = serviceTax;
-                serviceTaxForm.classList.remove('hidden');
                 serviceTaxDisplay.textContent = `Total Service Tax: $${serviceTax}`;
                 serviceTaxDisplay.classList.remove('hidden');
             }
@@ -467,7 +486,7 @@
             }
             dishes = dishes.concat(parsedDishes);
             updateDishesList();
-            updateDishSelect();
+            updateSharingTableRows();
             displayParsedResults(parsedDishes);
             if (dishes.length > 0) {
                 dishesList.classList.remove('hidden');
@@ -496,7 +515,7 @@
                 dish.dishName = editDishNameInput.value;
                 dish.cost = parseFloat(editDishCostInput.value).toFixed(2);
                 updateDishesList();
-                updateDishSelect();
+                updateSharingTableRows();
                 editModal.style.display = "none";
             }
         });
@@ -504,7 +523,7 @@
         removeEditBtn.addEventListener('click', function() {
             dishes = dishes.filter(d => d.dishId !== editDishId);
             updateDishesList();
-            updateDishSelect();
+            updateSharingTableRows();
             editModal.style.display = "none";
         });
 
@@ -517,14 +536,18 @@
                 editModal.style.display = "none";
             }
         });
-        
-        sharingForm.addEventListener('submit', function(event) {
-            event.preventDefault();
-            const selectedDish = dishSelect.value;
-            const selectedFriends = Array.from(document.querySelectorAll('#friendsCheckboxes input:checked')).map(input => input.value);
-            dishFriendsMap.set(selectedDish, selectedFriends);
+
+        assignFriendsBtn.addEventListener('click', function() {
+            const selectedFriends = {};
+            Array.from(document.querySelectorAll('#sharingTable tbody tr')).forEach(tr => {
+                const dishId = tr.dataset.dishId;
+                const selected = Array.from(tr.querySelectorAll('input.friend-checkbox:checked')).map(input => input.value);
+                selectedFriends[dishId] = selected;
+            });
+            Object.keys(selectedFriends).forEach(dishId => {
+                dishFriendsMap.set(dishId, selectedFriends[dishId]);
+            });
             updateAssignmentList();
-            sharingForm.reset();
             serviceTaxForm.classList.remove('hidden');
         });
 
@@ -572,6 +595,30 @@
             friendsList.innerHTML = friends.map(friend => `<li>${friend}</li>`).join('');
         }
         
+        function updateSharingTableHeaders() {
+            const thead = sharingTable.querySelector('thead tr');
+            thead.innerHTML = '<th>Dish</th>' + friends.map(friend => `<th>${friend}</th>`).join('');
+        }
+
+        function updateSharingTableRows() {
+            const tbody = sharingTable.querySelector('tbody');
+            tbody.innerHTML = dishes.map(dish => `
+                <tr data-dish-id="${dish.dishId}">
+                    <td>${dish.dishName} - $${dish.cost}</td>
+                    ${friends.map(friend => `<td><input type="checkbox" class="friend-checkbox" value="${friend}"></td>`).join('')}
+                    <td><input type="checkbox" class="select-all" data-dish-id="${dish.dishId}"> Select All</td>
+                </tr>
+            `).join('');
+            Array.from(tbody.querySelectorAll('.select-all')).forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const dishId = this.dataset.dishId;
+                    const row = tbody.querySelector(`tr[data-dish-id="${dishId}"]`);
+                    const checkboxes = row.querySelectorAll('.friend-checkbox');
+                    checkboxes.forEach(cb => cb.checked = this.checked);
+                });
+            });
+        }
+
         function updateDishesList() {
             dishesList.innerHTML = dishes.map(dish => `
                 <li>
@@ -579,14 +626,6 @@
                     <button class="edit-btn" onclick="editDish('${dish.dishId}')">Edit</button>
                 </li>
             `).join('');
-        }
-        
-        function updateFriendsCheckboxes() {
-            friendsCheckboxes.innerHTML = friends.map(friend => `<label><input type="checkbox" value="${friend}"> ${friend}</label>`).join('');
-        }
-        
-        function updateDishSelect() {
-            dishSelect.innerHTML = dishes.map(dish => `<option value="${dish.dishId}">${dish.dishName}</option>`).join('');
         }
         
         function updateAssignmentList() {
