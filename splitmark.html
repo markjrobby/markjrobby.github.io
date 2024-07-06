@@ -76,6 +76,12 @@
             border-radius: 5px;
             font-size: 16px;
             height: 42px;
+            transition: background-color 0.3s;
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
         }
 
         ul {
@@ -286,7 +292,7 @@
                 <!-- Dishes rows with checkboxes will be inserted here -->
             </tbody>
         </table>
-        <button type="button" id="assignFriendsBtn">Assign Friends</button>
+        <button type="button" id="assignFriendsBtn" disabled>Assign Friends</button>
     </div>
     
     <ul id="assignmentList" class="hidden assignments">
@@ -376,6 +382,7 @@
             friends.push(friendName);
             updateFriendsList();
             updateSharingTableHeaders();
+            updateSharingTableRows();
             friendsForm.reset();
             if (friends.length > 0) {
                 friendsList.classList.remove('hidden');
@@ -597,7 +604,7 @@
         
         function updateSharingTableHeaders() {
             const thead = sharingTable.querySelector('thead tr');
-            thead.innerHTML = '<th>Dish</th>' + friends.map(friend => `<th>${friend}</th>`).join('');
+            thead.innerHTML = '<th>Dish</th>' + friends.map(friend => `<th>${friend}</th>`).join('') + '<th>Select All</th>';
         }
 
         function updateSharingTableRows() {
@@ -605,18 +612,31 @@
             tbody.innerHTML = dishes.map(dish => `
                 <tr data-dish-id="${dish.dishId}">
                     <td>${dish.dishName} - $${dish.cost}</td>
-                    ${friends.map(friend => `<td><input type="checkbox" class="friend-checkbox" value="${friend}"></td>`).join('')}
-                    <td><input type="checkbox" class="select-all" data-dish-id="${dish.dishId}"> Select All</td>
+                    ${friends.map(friend => `<td><input type="checkbox" class="friend-checkbox" value="${friend}" onchange="validateAssignments()"></td>`).join('')}
+                    <td><input type="checkbox" class="select-all" data-dish-id="${dish.dishId}" onchange="selectAllFriends(this)"> Select All</td>
                 </tr>
             `).join('');
-            Array.from(tbody.querySelectorAll('.select-all')).forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    const dishId = this.dataset.dishId;
-                    const row = tbody.querySelector(`tr[data-dish-id="${dishId}"]`);
-                    const checkboxes = row.querySelectorAll('.friend-checkbox');
-                    checkboxes.forEach(cb => cb.checked = this.checked);
-                });
+        }
+
+        function selectAllFriends(selectAllCheckbox) {
+            const dishId = selectAllCheckbox.dataset.dishId;
+            const row = document.querySelector(`tr[data-dish-id="${dishId}"]`);
+            const checkboxes = row.querySelectorAll('.friend-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
+            validateAssignments();
+        }
+
+        function validateAssignments() {
+            const rows = document.querySelectorAll('#sharingTable tbody tr');
+            let allAssigned = true;
+            rows.forEach(row => {
+                const checkboxes = row.querySelectorAll('.friend-checkbox');
+                const isChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
+                if (!isChecked) {
+                    allAssigned = false;
+                }
             });
+            assignFriendsBtn.disabled = !allAssigned;
         }
 
         function updateDishesList() {
